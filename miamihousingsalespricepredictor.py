@@ -197,8 +197,18 @@ linear_model.fit(X_train_scaled, y_train)
 y_pred_linear = linear_model.predict(X_test_scaled)
 
 # Random Forest Regressor Model
-rf_model = RandomForestRegressor(random_state=42)
+rf_model = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=15,
+    min_samples_leaf=5,
+    random_state=42
+)
 rf_model.fit(X_train_scaled, y_train)
+
+import joblib
+joblib.dump(rf_model, "random_forest_model.pkl", compress=3)
+
+
 y_pred_rf = rf_model.predict(X_test_scaled)
 
 # Define the evaluation function for both training and testing
