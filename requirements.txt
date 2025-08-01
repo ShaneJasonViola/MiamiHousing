@@ -1,14 +1,8 @@
-import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-from sklearn.preprocessing import PolynomialFeatures
-import warnings
-warnings.filterwarnings('ignore')
-import kagglehub
+streamlit==1.47.1
+pandas>=1.5.0
+numpy>=1.23.0
+scikit-learn>=1.1.0
+matplotlib>=3.5.0
+seaborn>=0.12.0
+joblib
+kagglehub
