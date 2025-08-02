@@ -192,17 +192,17 @@ st.pyplot(fig1)
 
 # --- Correlation Heatmap  ---
 st.markdown("#### Correlation Heatmap")
-fig2, ax2 = plt.subplots(figsize=(8, 6))
+fig2, ax2 = plt.subplots(figsize=(5, 5))
 sns.heatmap(
     df.corr(numeric_only=True),
     annot=True,
     fmt=".2f",
     cmap="coolwarm",
     ax=ax2,
-    annot_kws={"size": 6}
+    annot_kws={"size": 5}
 )
-ax2.set_xticklabels(ax2.get_xticklabels(), rotation=45, ha='right', fontsize=6)
-ax2.set_yticklabels(ax2.get_yticklabels(), rotation=0, fontsize=6)
+ax2.set_xticklabels(ax2.get_xticklabels(), rotation=45, ha='right', fontsize=5)
+ax2.set_yticklabels(ax2.get_yticklabels(), rotation=0, fontsize=5)
 plt.tight_layout()
 st.pyplot(fig2)
 
