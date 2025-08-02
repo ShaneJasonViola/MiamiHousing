@@ -63,9 +63,6 @@ def load_data():
 
 df = load_data()
 
-# Drop identifier
-if "PARCELNO" in df.columns:
-    df.drop("PARCELNO", axis=1, inplace=True)
 
 # Define columns for modeling
 feature_columns = df.drop("SALE_PRC", axis=1).columns.tolist()
