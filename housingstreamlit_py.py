@@ -40,21 +40,29 @@ It also provides model evaluation metrics and key insights from the dataset.
 
 @st.cache_resource
 def load_models():
-    lr_model = joblib.load("linear_model.pkl")
-    rf_model = joblib.load("random_forest_model.pkl")
-    scaler = joblib.load("scaler.pkl")
-    return lr_model, rf_model, scaler
+    try:
+        lr_model = joblib.load("linear_model.pkl")
+        rf_model = joblib.load("random_forest_model.pkl")
+        scaler = joblib.load("scaler.pkl")
+        return lr_model, rf_model, scaler
+    except FileNotFoundError as e:
+        st.error(f"Model file not found: {e.filename}. Ensure all model files are uploaded.")
+        st.stop()
 
 lr_model, rf_model, scaler = load_models()
 
 # -------------------------------------
-# LOAD DATASET (FOR EXPLORATION & FEATURE REFERENCE)
+# LOAD DATASET
 # -------------------------------------
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv("miami_housing_sample.csv")
-    return df
+    try:
+        df = pd.read_csv("miami_housing_sample.csv")
+        return df
+    except FileNotFoundError:
+        st.error("The file 'miami_housing_sample.csv' was not found. Please upload the dataset.")
+        st.stop()
 
 df = load_data()
 
@@ -99,21 +107,25 @@ def get_user_input():
 
 user_input_df = get_user_input()
 
+# Validate user input
+if user_input_df.isnull().values.any():
+    st.warning("Some input fields are missing. Please complete all inputs.")
+    st.stop()
+
 # -------------------------------------
 # MAKE PREDICTIONS
 # -------------------------------------
 
-# Ensure the input columns match what the scaler expects
+# Ensure correct column order for scaling
 try:
     user_input_df = user_input_df[scaler.feature_names_in_]
 except AttributeError:
-    st.error("Scaler does not contain feature names. It may have been trained on a NumPy array. Please retrain it on a DataFrame.")
+    st.error("Scaler does not contain feature names. Retrain the scaler using a DataFrame, not NumPy arrays.")
     st.stop()
 except KeyError as e:
     st.error(f"Input features do not match the scaler's expected input. Missing columns: {e}")
     st.stop()
 
-# Now safe to transform
 user_scaled = scaler.transform(user_input_df)
 lr_pred = lr_model.predict(user_scaled)[0]
 rf_pred = rf_model.predict(user_scaled)[0]
@@ -180,7 +192,6 @@ with col1:
     st.markdown("Distribution of Sale Prices")
     fig1, ax1 = plt.subplots()
     sns.histplot(df["SALE_PRC"], bins=40, ax=ax1, kde=True)
-    ax1.set_xlabel("Sale Price ($)")
     st.pyplot(fig1)
 
 with col2:
@@ -201,7 +212,7 @@ for i, feature in enumerate(top_features):
     sns.scatterplot(data=df, x=feature, y="SALE_PRC", ax=axs[i])
     axs[i].set_title(f"{label} vs Sale Price")
     axs[i].set_xlabel(label)
-    axs[i].set_ylabel("Sale Price ($)")
+    axs[i].set_ylabel("Sale Price")
 
 plt.tight_layout()
 st.pyplot(fig3)
@@ -212,3 +223,4 @@ st.pyplot(fig3)
 
 st.markdown("---")
 st.caption("Developed for academic and stakeholder presentation of housing price modeling.")
+
