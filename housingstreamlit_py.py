@@ -171,8 +171,8 @@ with col2:
     st.write(f"R²  : {rf_metrics['R2']:.4f}")
 
 st.markdown("### Model Comparison Summary")
-better_model = "Random Forest" if rf_metrics["RMSE"] < lr_metrics["RMSE"] else "Linear Regression"
-st.success(f"Based on RMSE, the better performing model is: **{better_model}**.")
+better_model = "Random Forest" if rf_metrics["R2"] < lr_metrics["R2"] else "Linear Regression"
+st.success(f"Based on R2, the better performing model is: **{better_model}**.")
 
 # -------------------------------------
 # DATA EXPLORATION
