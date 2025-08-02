@@ -10,6 +10,8 @@ Original file is located at
 # app.py
 
 
+# app.py
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -58,7 +60,32 @@ def load_data():
     return df
 
 df = load_data()
+
+# Drop identifier
+if "PARCELNO" in df.columns:
+    df.drop("PARCELNO", axis=1, inplace=True)
+
+# Define columns for modeling
 feature_columns = df.drop("SALE_PRC", axis=1).columns.tolist()
+
+# Descriptive names for UI display
+feature_labels = {
+    "LND_SQFOOT": "Land Area (sq ft)",
+    "TOT_LVG_AREA": "Living Area (sq ft)",
+    "SPEC_FEAT_VAL": "Special Feature Value ($)",
+    "RAIL_DIST": "Distance to Nearest Rail Line (ft)",
+    "OCEAN_DIST": "Distance to Ocean (ft)",
+    "WATER_DIST": "Distance to Water Body (ft)",
+    "CNTR_DIST": "Distance to Downtown Miami (ft)",
+    "SUBCNTR_DI": "Distance to Subcenter (ft)",
+    "HWY_DIST": "Distance to Highway (ft)",
+    "age": "Age of Structure",
+    "avno60plus": "Airplane Noise > 60 dB (1=Yes)",
+    "structure_quality": "Structure Quality",
+    "month_sold": "Month Sold (1 = Jan)",
+    "LATITUDE": "Latitude",
+    "LONGITUDE": "Longitude"
+}
 
 # -------------------------------------
 # USER INPUT SECTION
@@ -70,10 +97,11 @@ st.sidebar.markdown("Enter the features of your property below:")
 def get_user_input():
     input_data = {}
     for feature in feature_columns:
+        label = feature_labels.get(feature, feature)
         if df[feature].dtype in [np.float64, np.int64]:
-            input_data[feature] = st.sidebar.number_input(f"{feature}", value=float(df[feature].median()))
+            input_data[feature] = st.sidebar.number_input(f"{label}", value=float(df[feature].median()))
         else:
-            input_data[feature] = st.sidebar.selectbox(f"{feature}", options=df[feature].unique())
+            input_data[feature] = st.sidebar.selectbox(f"{label}", options=df[feature].unique())
     return pd.DataFrame([input_data])
 
 user_input_df = get_user_input()
@@ -82,19 +110,14 @@ user_input_df = get_user_input()
 # MAKE PREDICTIONS
 # -------------------------------------
 
-# Prepare input
 user_scaled = scaler.transform(user_input_df)
-
-# Predict
 lr_pred = lr_model.predict(user_scaled)[0]
 rf_pred = rf_model.predict(user_scaled)[0]
 
-# Display predictions
 st.subheader("Estimated Property Price")
 st.write(f"Linear Regression Prediction: ${lr_pred:,.2f}")
 st.write(f"Random Forest Prediction: ${rf_pred:,.2f}")
 
-# Confidence estimate based on RF prediction variance
 rf_test_preds = rf_model.predict(scaler.transform(df[feature_columns]))
 rf_pred_std = np.std(rf_test_preds)
 st.info(f"Approximate Confidence Range for Random Forest Prediction: ±${rf_pred_std:.2f}")
@@ -105,17 +128,14 @@ st.info(f"Approximate Confidence Range for Random Forest Prediction: ±${rf_pred
 
 st.subheader("Model Performance Comparison")
 
-# Evaluation split
 X = df[feature_columns]
 y = df["SALE_PRC"]
 X_scaled = scaler.transform(X)
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
 
-# Predict on test set
 lr_test_pred = lr_model.predict(X_test)
 rf_test_pred = rf_model.predict(X_test)
 
-# Metric function
 def compute_metrics(y_true, y_pred):
     return {
         "MAE": mean_absolute_error(y_true, y_pred),
@@ -123,11 +143,9 @@ def compute_metrics(y_true, y_pred):
         "R2": r2_score(y_true, y_pred)
     }
 
-# Calculate metrics
 lr_metrics = compute_metrics(y_test, lr_test_pred)
 rf_metrics = compute_metrics(y_test, rf_test_pred)
 
-# Display metrics side-by-side
 col1, col2 = st.columns(2)
 
 with col1:
@@ -142,7 +160,6 @@ with col2:
     st.write(f"RMSE: {rf_metrics['RMSE']:.2f}")
     st.write(f"R²  : {rf_metrics['R2']:.4f}")
 
-# Compare and highlight better model
 st.markdown("### Model Comparison Summary")
 better_model = "Random Forest" if rf_metrics["RMSE"] < lr_metrics["RMSE"] else "Linear Regression"
 st.success(f"Based on RMSE, the better performing model is: **{better_model}**.")
@@ -153,7 +170,6 @@ st.success(f"Based on RMSE, the better performing model is: **{better_model}**."
 
 st.subheader("Data Exploration and Visual Insights")
 
-# Price Distribution and Correlation
 col1, col2 = st.columns(2)
 
 with col1:
@@ -168,7 +184,6 @@ with col2:
     sns.heatmap(df.corr(numeric_only=True), annot=True, fmt=".2f", cmap="coolwarm", ax=ax2)
     st.pyplot(fig2)
 
-# Scatter plots of top features
 st.markdown("Scatter Plots of Key Predictive Features")
 target_corr = df.corr(numeric_only=True)["SALE_PRC"].drop("SALE_PRC").abs().sort_values(ascending=False)
 top_features = target_corr.head(4).index
