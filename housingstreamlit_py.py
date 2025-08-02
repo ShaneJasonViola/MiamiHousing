@@ -210,7 +210,7 @@ sns.heatmap(
 )
 
 # Shrink label fonts
-ax2.tick_params(axis='x', labelrotation=45, labelsize=6)
+ax2.tick_params(axis='x', labelrotation=90, labelsize=6)
 ax2.tick_params(axis='y', labelsize=6)
 
 st.pyplot(fig2)
