@@ -178,35 +178,33 @@ st.success(f"Based on R², the better performing model is: **{better_model}**.")
 # -------------------------------------
 st.subheader("Data Exploration and Visual Insights")
 
-col1, col2 = st.columns(2)
+# --- Distribution Plot (Full Width) ---
+st.markdown("#### Distribution of Sale Prices")
+fig1, ax1 = plt.subplots(figsize=(12, 6))
+sns.histplot(df["SALE_PRC"], bins=40, ax=ax1, kde=True, color="skyblue")
+ax1.set_title("Distribution of Sale Prices", fontsize=16)
+ax1.set_xlabel("Sale Price ($)", fontsize=13)
+ax1.set_ylabel("Home Sales", fontsize=13)
+ax1.ticklabel_format(style='plain', axis='x')
+ax1.get_xaxis().set_major_formatter(plt.FuncFormatter(lambda x, loc: "${:,}".format(int(x))))
+plt.tight_layout()
+st.pyplot(fig1)
 
-with col1:
-    st.markdown("Distribution of Sale Prices")
-    fig1, ax1 = plt.subplots(figsize=(10, 6))
-    sns.histplot(df["SALE_PRC"], bins=40, ax=ax1, kde=True, color="skyblue")
-    ax1.set_title("Distribution of Sale Prices", fontsize=14)
-    ax1.set_xlabel("Sale Price ($)", fontsize=12)
-    ax1.set_ylabel("Home Sales", fontsize=12)
-    ax1.ticklabel_format(style='plain', axis='x')
-    ax1.get_xaxis().set_major_formatter(plt.FuncFormatter(lambda x, loc: "${:,}".format(int(x))))
-    plt.tight_layout()
-    st.pyplot(fig1)
-    
-with col2:
-    st.markdown("Correlation Heatmap")
-    fig2, ax2 = plt.subplots(figsize=(12, 10))
-    sns.heatmap(
-        df.corr(numeric_only=True),
-        annot=True,
-        fmt=".2f",
-        cmap="coolwarm",
-        ax=ax2,
-        annot_kws={"size": 8}
-    )
-    ax2.set_xticklabels(ax2.get_xticklabels(), rotation=45, ha='right', fontsize=9)
-    ax2.set_yticklabels(ax2.get_yticklabels(), rotation=0, fontsize=9)
-    plt.tight_layout()
-    st.pyplot(fig2)
+# --- Correlation Heatmap (Full Width) ---
+st.markdown("#### Correlation Heatmap")
+fig2, ax2 = plt.subplots(figsize=(12, 10))
+sns.heatmap(
+    df.corr(numeric_only=True),
+    annot=True,
+    fmt=".2f",
+    cmap="coolwarm",
+    ax=ax2,
+    annot_kws={"size": 8}
+)
+ax2.set_xticklabels(ax2.get_xticklabels(), rotation=45, ha='right', fontsize=9)
+ax2.set_yticklabels(ax2.get_yticklabels(), rotation=0, fontsize=9)
+plt.tight_layout()
+st.pyplot(fig2)
 
 st.markdown("Scatter Plots of Key Predictive Features")
 target_corr = df.corr(numeric_only=True)["SALE_PRC"].drop("SALE_PRC").abs().sort_values(ascending=False)
