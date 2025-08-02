@@ -9,8 +9,7 @@ Original file is located at
 
 # app.py
 
-st.write("Scaler was trained on:", list(scaler.feature_names_in_))
-st.write("User input columns:", list(user_input_df.columns))
+
 # app.py
 
 import streamlit as st
@@ -21,6 +20,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
+
+st.write("Scaler was trained on:", list(scaler.feature_names_in_))
+st.write("User input columns:", list(user_input_df.columns))
 
 # -------------------------------------
 # CONFIGURATION & PAGE SETUP
