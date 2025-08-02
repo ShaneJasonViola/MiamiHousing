@@ -182,10 +182,16 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("Distribution of Sale Prices")
-    fig1, ax1 = plt.subplots()
-    sns.histplot(df["SALE_PRC"], bins=40, ax=ax1, kde=True)
+    fig1, ax1 = plt.subplots(figsize=(10, 6))
+    sns.histplot(df["SALE_PRC"], bins=40, ax=ax1, kde=True, color="skyblue")
+    ax1.set_title("Distribution of Sale Prices", fontsize=14)
+    ax1.set_xlabel("Sale Price ($)", fontsize=12)
+    ax1.set_ylabel("Home Sales", fontsize=12)
+    ax1.ticklabel_format(style='plain', axis='x')
+    ax1.get_xaxis().set_major_formatter(plt.FuncFormatter(lambda x, loc: "${:,}".format(int(x))))
+    plt.tight_layout()
     st.pyplot(fig1)
-
+    
 with col2:
     st.markdown("Correlation Heatmap")
     fig2, ax2 = plt.subplots(figsize=(12, 10))
