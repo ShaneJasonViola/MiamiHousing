@@ -7,11 +7,8 @@ Original file is located at
     https://colab.research.google.com/drive/10wIJjRK0oTEHq7EODsxBTNcOJpqZv1Yg
 """
 
-# app.py
-
 
 # app.py
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -20,8 +17,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
-
-
 
 # -------------------------------------
 # CONFIGURATION & PAGE SETUP
@@ -62,7 +57,6 @@ def load_data():
     return df
 
 df = load_data()
-
 
 # Define columns for modeling
 feature_columns = df.drop("SALE_PRC", axis=1).columns.tolist()
@@ -171,8 +165,8 @@ with col2:
     st.write(f"R²  : {rf_metrics['R2']:.4f}")
 
 st.markdown("### Model Comparison Summary")
-better_model = "Random Forest" if rf_metrics["R2"] < lr_metrics["R2"] else "Linear Regression"
-st.success(f"Based on R2, the better performing model is: **{better_model}**.")
+better_model = "Random Forest" if rf_metrics["R2"] > lr_metrics["R2"] else "Linear Regression"
+st.success(f"Based on R², the better performing model is: **{better_model}**.")
 
 # -------------------------------------
 # DATA EXPLORATION
@@ -186,6 +180,7 @@ with col1:
     st.markdown("Distribution of Sale Prices")
     fig1, ax1 = plt.subplots()
     sns.histplot(df["SALE_PRC"], bins=40, ax=ax1, kde=True)
+    ax1.set_xlabel("Sale Price ($)")
     st.pyplot(fig1)
 
 with col2:
@@ -202,8 +197,11 @@ fig3, axs = plt.subplots(2, 2, figsize=(15, 10))
 axs = axs.flatten()
 
 for i, feature in enumerate(top_features):
+    label = feature_labels.get(feature, feature)
     sns.scatterplot(data=df, x=feature, y="SALE_PRC", ax=axs[i])
-    axs[i].set_title(f"{feature} vs SALE_PRC")
+    axs[i].set_title(f"{label} vs Sale Price")
+    axs[i].set_xlabel(label)
+    axs[i].set_ylabel("Sale Price ($)")
 
 plt.tight_layout()
 st.pyplot(fig3)
