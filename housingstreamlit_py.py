@@ -9,15 +9,13 @@ Original file is located at
 
 # app.py
 
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 
@@ -43,22 +41,20 @@ It also provides model evaluation metrics and key insights from the dataset.
 
 @st.cache_resource
 def load_models():
-    # Replace with actual model files after exporting them
-    lr_model = joblib.load("linear_model.pkl")         # Linear Regression
-    rf_model = joblib.load("random_forest_model.pkl")  # Random Forest
-    scaler = joblib.load("scaler.pkl")                 # StandardScaler
+    lr_model = joblib.load("linear_model.pkl")
+    rf_model = joblib.load("random_forest_model.pkl")
+    scaler = joblib.load("scaler.pkl")
     return lr_model, rf_model, scaler
 
-# Load models and scaler (only if exporting externally)
-# lr_model, rf_model, scaler = load_models()
+lr_model, rf_model, scaler = load_models()
 
 # -------------------------------------
-# LOAD DATASET (FOR EXPLORATION & VISUALIZATION)
+# LOAD DATASET (FOR EXPLORATION & FEATURE REFERENCE)
 # -------------------------------------
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv("miami_housing_sample.csv")  # Replace with full CSV path
+    df = pd.read_csv("miami_housing_sample.csv")
     return df
 
 df = load_data()
@@ -83,36 +79,25 @@ def get_user_input():
 user_input_df = get_user_input()
 
 # -------------------------------------
-# MODEL TRAINING AND PREDICTION (LOCAL VERSION)
+# MAKE PREDICTIONS
 # -------------------------------------
 
-# Fit scaler
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(df[feature_columns])
+# Prepare input
 user_scaled = scaler.transform(user_input_df)
 
-# Fit models
-X = df[feature_columns]
-y = df["SALE_PRC"]
-
-lr_model = LinearRegression()
-rf_model = RandomForestRegressor(random_state=42)
-
-lr_model.fit(X_scaled, y)
-rf_model.fit(X_scaled, y)
-
-# Predictions
+# Predict
 lr_pred = lr_model.predict(user_scaled)[0]
 rf_pred = rf_model.predict(user_scaled)[0]
 
-# Display Predictions
+# Display predictions
 st.subheader("Estimated Property Price")
 st.write(f"Linear Regression Prediction: ${lr_pred:,.2f}")
 st.write(f"Random Forest Prediction: ${rf_pred:,.2f}")
 
-# Confidence estimate
-std_dev = df["SALE_PRC"].std()
-st.write(f"Approximate Confidence Range: ±${std_dev:.2f}")
+# Confidence estimate based on RF prediction variance
+rf_test_preds = rf_model.predict(scaler.transform(df[feature_columns]))
+rf_pred_std = np.std(rf_test_preds)
+st.info(f"Approximate Confidence Range for Random Forest Prediction: ±${rf_pred_std:.2f}")
 
 # -------------------------------------
 # MODEL PERFORMANCE SECTION
@@ -121,50 +106,74 @@ st.write(f"Approximate Confidence Range: ±${std_dev:.2f}")
 st.subheader("Model Performance Comparison")
 
 # Evaluation split
+X = df[feature_columns]
+y = df["SALE_PRC"]
+X_scaled = scaler.transform(X)
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
 
-def get_metrics(y_true, y_pred, model_name):
-    mae = mean_absolute_error(y_true, y_pred)
-    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-    r2 = r2_score(y_true, y_pred)
-    st.markdown(f"**{model_name}**")
-    st.write(f"MAE : {mae:.2f}")
-    st.write(f"RMSE: {rmse:.2f}")
-    st.write(f"R²  : {r2:.4f}")
-    return pd.Series([mae, rmse, r2], index=["MAE", "RMSE", "R2"])
+# Predict on test set
+lr_test_pred = lr_model.predict(X_test)
+rf_test_pred = rf_model.predict(X_test)
 
-lr_metrics = get_metrics(y_test, lr_model.predict(X_test), "Linear Regression")
-rf_metrics = get_metrics(y_test, rf_model.predict(X_test), "Random Forest")
+# Metric function
+def compute_metrics(y_true, y_pred):
+    return {
+        "MAE": mean_absolute_error(y_true, y_pred),
+        "RMSE": np.sqrt(mean_squared_error(y_true, y_pred)),
+        "R2": r2_score(y_true, y_pred)
+    }
 
-# Display comparison
-metrics_df = pd.DataFrame({"Linear Regression": lr_metrics, "Random Forest": rf_metrics})
-st.bar_chart(metrics_df.T)
+# Calculate metrics
+lr_metrics = compute_metrics(y_test, lr_test_pred)
+rf_metrics = compute_metrics(y_test, rf_test_pred)
+
+# Display metrics side-by-side
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("**Linear Regression Metrics**")
+    st.write(f"MAE : {lr_metrics['MAE']:.2f}")
+    st.write(f"RMSE: {lr_metrics['RMSE']:.2f}")
+    st.write(f"R²  : {lr_metrics['R2']:.4f}")
+
+with col2:
+    st.markdown("**Random Forest Metrics**")
+    st.write(f"MAE : {rf_metrics['MAE']:.2f}")
+    st.write(f"RMSE: {rf_metrics['RMSE']:.2f}")
+    st.write(f"R²  : {rf_metrics['R2']:.4f}")
+
+# Compare and highlight better model
+st.markdown("### Model Comparison Summary")
+better_model = "Random Forest" if rf_metrics["RMSE"] < lr_metrics["RMSE"] else "Linear Regression"
+st.success(f"Based on RMSE, the better performing model is: **{better_model}**.")
 
 # -------------------------------------
-# EXPLORATORY DATA ANALYSIS SECTION
+# DATA EXPLORATION
 # -------------------------------------
 
 st.subheader("Data Exploration and Visual Insights")
 
+# Price Distribution and Correlation
 col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("Distribution of Sale Prices")
-    fig, ax = plt.subplots()
-    sns.histplot(df["SALE_PRC"], bins=40, ax=ax, kde=True)
-    st.pyplot(fig)
+    fig1, ax1 = plt.subplots()
+    sns.histplot(df["SALE_PRC"], bins=40, ax=ax1, kde=True)
+    st.pyplot(fig1)
 
 with col2:
     st.markdown("Correlation Heatmap")
-    fig, ax = plt.subplots(figsize=(8, 6))
-    sns.heatmap(df.corr(numeric_only=True), annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
-    st.pyplot(fig)
+    fig2, ax2 = plt.subplots(figsize=(8, 6))
+    sns.heatmap(df.corr(numeric_only=True), annot=True, fmt=".2f", cmap="coolwarm", ax=ax2)
+    st.pyplot(fig2)
 
+# Scatter plots of top features
 st.markdown("Scatter Plots of Key Predictive Features")
 target_corr = df.corr(numeric_only=True)["SALE_PRC"].drop("SALE_PRC").abs().sort_values(ascending=False)
 top_features = target_corr.head(4).index
 
-fig, axs = plt.subplots(2, 2, figsize=(15, 10))
+fig3, axs = plt.subplots(2, 2, figsize=(15, 10))
 axs = axs.flatten()
 
 for i, feature in enumerate(top_features):
@@ -172,7 +181,7 @@ for i, feature in enumerate(top_features):
     axs[i].set_title(f"{feature} vs SALE_PRC")
 
 plt.tight_layout()
-st.pyplot(fig)
+st.pyplot(fig3)
 
 # -------------------------------------
 # FOOTER
