@@ -192,19 +192,29 @@ st.pyplot(fig1)
 
 # --- Correlation Heatmap  ---
 st.markdown("Correlation Heatmap")
-fig2, ax2 = plt.subplots(figsize=(6, 5))  # Reduced from 8x6 to 6x5
+
+# Apply readable labels
+renamed_df = df.rename(columns=feature_labels)
+corr_matrix = renamed_df.corr(numeric_only=True)
+
+fig2, ax2 = plt.subplots(figsize=(6, 5))  # Smaller figure size
+
 sns.heatmap(
-    df.corr(numeric_only=True),
+    corr_matrix,
     annot=True,
     fmt=".2f",
     cmap="coolwarm",
     ax=ax2,
-    annot_kws={"size": 7},    # Smaller numbers
-    cbar_kws={"shrink": 0.7}  # Smaller color bar
+    annot_kws={"size": 6},      # Smaller font size for numbers
+    cbar_kws={"shrink": 0.6}    # Shrink color bar
 )
-ax2.tick_params(axis='x', labelrotation=45, labelsize=8)
-ax2.tick_params(axis='y', labelsize=8)
+
+# Shrink label fonts
+ax2.tick_params(axis='x', labelrotation=45, labelsize=6)
+ax2.tick_params(axis='y', labelsize=6)
+
 st.pyplot(fig2)
+
 
 
 st.markdown("Scatter Plots of Key Predictive Features")
