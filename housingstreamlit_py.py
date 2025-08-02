@@ -178,7 +178,7 @@ st.success(f"Based on R², the better performing model is: **{better_model}**.")
 # -------------------------------------
 st.subheader("Data Exploration and Visual Insights")
 
-# --- Distribution Plot (Full Width) ---
+# --- Distribution Plot  ---
 st.markdown("#### Distribution of Sale Prices")
 fig1, ax1 = plt.subplots(figsize=(12, 6))
 sns.histplot(df["SALE_PRC"], bins=40, ax=ax1, kde=True, color="skyblue")
@@ -190,16 +190,16 @@ ax1.get_xaxis().set_major_formatter(plt.FuncFormatter(lambda x, loc: "${:,}".for
 plt.tight_layout()
 st.pyplot(fig1)
 
-# --- Correlation Heatmap (Full Width) ---
+# --- Correlation Heatmap  ---
 st.markdown("#### Correlation Heatmap")
-fig2, ax2 = plt.subplots(figsize=(12, 10))
+fig2, ax2 = plt.subplots(figsize=(10, 8))
 sns.heatmap(
     df.corr(numeric_only=True),
     annot=True,
     fmt=".2f",
     cmap="coolwarm",
     ax=ax2,
-    annot_kws={"size": 8}
+    annot_kws={"size": 7}
 )
 ax2.set_xticklabels(ax2.get_xticklabels(), rotation=45, ha='right', fontsize=9)
 ax2.set_yticklabels(ax2.get_yticklabels(), rotation=0, fontsize=9)
