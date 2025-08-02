@@ -9,7 +9,8 @@ Original file is located at
 
 # app.py
 
-
+st.write("Scaler was trained on:", list(scaler.feature_names_in_))
+st.write("User input columns:", list(user_input_df.columns))
 # app.py
 
 import streamlit as st
