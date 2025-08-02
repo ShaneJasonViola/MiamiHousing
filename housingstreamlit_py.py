@@ -191,20 +191,21 @@ plt.tight_layout()
 st.pyplot(fig1)
 
 # --- Correlation Heatmap  ---
-st.markdown("#### Correlation Heatmap")
-fig2, ax2 = plt.subplots(figsize=(5, 5))
+st.markdown("Correlation Heatmap")
+fig2, ax2 = plt.subplots(figsize=(6, 5))  # Reduced from 8x6 to 6x5
 sns.heatmap(
     df.corr(numeric_only=True),
     annot=True,
     fmt=".2f",
     cmap="coolwarm",
     ax=ax2,
-    annot_kws={"size": 5}
+    annot_kws={"size": 7},    # Smaller numbers
+    cbar_kws={"shrink": 0.7}  # Smaller color bar
 )
-ax2.set_xticklabels(ax2.get_xticklabels(), rotation=45, ha='right', fontsize=5)
-ax2.set_yticklabels(ax2.get_yticklabels(), rotation=0, fontsize=5)
-plt.tight_layout()
+ax2.tick_params(axis='x', labelrotation=45, labelsize=8)
+ax2.tick_params(axis='y', labelsize=8)
 st.pyplot(fig2)
+
 
 st.markdown("Scatter Plots of Key Predictive Features")
 target_corr = df.corr(numeric_only=True)["SALE_PRC"].drop("SALE_PRC").abs().sort_values(ascending=False)
