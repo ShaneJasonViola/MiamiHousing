@@ -9,6 +9,10 @@ Original file is located at
 
 
 # app.py
+
+
+# app.py
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -21,7 +25,6 @@ from sklearn.model_selection import train_test_split
 # -------------------------------------
 # CONFIGURATION & PAGE SETUP
 # -------------------------------------
-
 st.set_page_config(
     page_title="Miami Housing Price Estimator",
     layout="wide",
@@ -37,7 +40,6 @@ It also provides model evaluation metrics and key insights from the dataset.
 # -------------------------------------
 # LOAD MODELS AND SCALER
 # -------------------------------------
-
 @st.cache_resource
 def load_models():
     try:
@@ -46,7 +48,7 @@ def load_models():
         scaler = joblib.load("scaler.pkl")
         return lr_model, rf_model, scaler
     except FileNotFoundError as e:
-        st.error(f"Model file not found: {e.filename}. Ensure all model files are uploaded.")
+        st.error(f"Missing model file: {e.filename}. Please ensure all model files are uploaded.")
         st.stop()
 
 lr_model, rf_model, scaler = load_models()
@@ -54,22 +56,19 @@ lr_model, rf_model, scaler = load_models()
 # -------------------------------------
 # LOAD DATASET
 # -------------------------------------
-
 @st.cache_data
 def load_data():
     try:
         df = pd.read_csv("miami_housing_sample.csv")
         return df
     except FileNotFoundError:
-        st.error("The file 'miami_housing_sample.csv' was not found. Please upload the dataset.")
+        st.error("Dataset file 'miami_housing_sample.csv' not found. Please upload the dataset.")
         st.stop()
 
 df = load_data()
-
-# Define columns for modeling
 feature_columns = df.drop("SALE_PRC", axis=1).columns.tolist()
 
-# Descriptive names for UI display
+# UI Labels
 feature_labels = {
     "LND_SQFOOT": "Land Area (sq ft)",
     "TOT_LVG_AREA": "Living Area (sq ft)",
@@ -91,41 +90,36 @@ feature_labels = {
 # -------------------------------------
 # USER INPUT SECTION
 # -------------------------------------
-
 st.sidebar.header("Input House Features")
-st.sidebar.markdown("Enter the features of your property below:")
 
 def get_user_input():
     input_data = {}
     for feature in feature_columns:
         label = feature_labels.get(feature, feature)
         if df[feature].dtype in [np.float64, np.int64]:
-            input_data[feature] = st.sidebar.number_input(f"{label}", value=float(df[feature].median()))
+            input_data[feature] = st.sidebar.number_input(label, value=float(df[feature].median()))
         else:
-            input_data[feature] = st.sidebar.selectbox(f"{label}", options=df[feature].unique())
+            input_data[feature] = st.sidebar.selectbox(label, options=df[feature].unique())
     return pd.DataFrame([input_data])
 
 user_input_df = get_user_input()
 
-# Validate user input
 if user_input_df.isnull().values.any():
     st.warning("Some input fields are missing. Please complete all inputs.")
     st.stop()
 
-# -------------------------------------
-# MAKE PREDICTIONS
-# -------------------------------------
-
-# Ensure correct column order for scaling
 try:
     user_input_df = user_input_df[scaler.feature_names_in_]
 except AttributeError:
-    st.error("Scaler does not contain feature names. Retrain the scaler using a DataFrame, not NumPy arrays.")
+    st.error("Scaler does not contain feature names. It may have been trained on a NumPy array. Please retrain it on a DataFrame.")
     st.stop()
 except KeyError as e:
     st.error(f"Input features do not match the scaler's expected input. Missing columns: {e}")
     st.stop()
 
+# -------------------------------------
+# PREDICTIONS
+# -------------------------------------
 user_scaled = scaler.transform(user_input_df)
 lr_pred = lr_model.predict(user_scaled)[0]
 rf_pred = rf_model.predict(user_scaled)[0]
@@ -139,9 +133,8 @@ rf_pred_std = np.std(rf_test_preds)
 st.info(f"Approximate Confidence Range for Random Forest Prediction: ±${rf_pred_std:.2f}")
 
 # -------------------------------------
-# MODEL PERFORMANCE SECTION
+# MODEL PERFORMANCE
 # -------------------------------------
-
 st.subheader("Model Performance Comparison")
 
 X = df[feature_columns]
@@ -183,7 +176,6 @@ st.success(f"Based on R², the better performing model is: **{better_model}**.")
 # -------------------------------------
 # DATA EXPLORATION
 # -------------------------------------
-
 st.subheader("Data Exploration and Visual Insights")
 
 col1, col2 = st.columns(2)
@@ -196,8 +188,18 @@ with col1:
 
 with col2:
     st.markdown("Correlation Heatmap")
-    fig2, ax2 = plt.subplots(figsize=(8, 6))
-    sns.heatmap(df.corr(numeric_only=True), annot=True, fmt=".2f", cmap="coolwarm", ax=ax2)
+    fig2, ax2 = plt.subplots(figsize=(12, 10))
+    sns.heatmap(
+        df.corr(numeric_only=True),
+        annot=True,
+        fmt=".2f",
+        cmap="coolwarm",
+        ax=ax2,
+        annot_kws={"size": 8}
+    )
+    ax2.set_xticklabels(ax2.get_xticklabels(), rotation=45, ha='right', fontsize=9)
+    ax2.set_yticklabels(ax2.get_yticklabels(), rotation=0, fontsize=9)
+    plt.tight_layout()
     st.pyplot(fig2)
 
 st.markdown("Scatter Plots of Key Predictive Features")
@@ -212,7 +214,7 @@ for i, feature in enumerate(top_features):
     sns.scatterplot(data=df, x=feature, y="SALE_PRC", ax=axs[i])
     axs[i].set_title(f"{label} vs Sale Price")
     axs[i].set_xlabel(label)
-    axs[i].set_ylabel("Sale Price")
+    axs[i].set_ylabel("Sale Price ($)")
 
 plt.tight_layout()
 st.pyplot(fig3)
@@ -220,7 +222,7 @@ st.pyplot(fig3)
 # -------------------------------------
 # FOOTER
 # -------------------------------------
-
 st.markdown("---")
-st.caption("Developed for academic and stakeholder presentation of housing price modeling.")
+st.caption("Developed for academic purposes only.")
+
 
