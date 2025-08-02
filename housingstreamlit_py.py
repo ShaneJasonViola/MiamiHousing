@@ -192,7 +192,7 @@ st.pyplot(fig1)
 
 # --- Correlation Heatmap  ---
 st.markdown("#### Correlation Heatmap")
-fig2, ax2 = plt.subplots(figsize=(6, 6))
+fig2, ax2 = plt.subplots(figsize=(8, 6))
 sns.heatmap(
     df.corr(numeric_only=True),
     annot=True,
