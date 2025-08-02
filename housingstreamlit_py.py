@@ -112,6 +112,17 @@ user_input_df = get_user_input()
 # MAKE PREDICTIONS
 # -------------------------------------
 
+# Ensure the input columns match what the scaler expects
+try:
+    user_input_df = user_input_df[scaler.feature_names_in_]
+except AttributeError:
+    st.error("Scaler does not contain feature names. It may have been trained on a NumPy array. Please retrain it on a DataFrame.")
+    st.stop()
+except KeyError as e:
+    st.error(f"Input features do not match the scaler's expected input. Missing columns: {e}")
+    st.stop()
+
+# Now safe to transform
 user_scaled = scaler.transform(user_input_df)
 lr_pred = lr_model.predict(user_scaled)[0]
 rf_pred = rf_model.predict(user_scaled)[0]
