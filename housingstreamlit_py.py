@@ -63,7 +63,7 @@ feature_labels = {
     "HWY_DIST": "Distance to Highway (ft)",
     "age": "Age of Structure",
     "avno60plus": "Airplane Noise > 60 dB (1=Yes)",
-    "structure_quality": "Structure Quality",
+    "structure_quality": "Structure Quality (1–5)\n\n1: Very poor. Major structural deficiencies. Possibly unsafe or uninhabitable.\n2: Poor condition. Noticeable structural problems that may affect safety or require repair.\n3: Fair condition. Some aging or minor structural issues (e.g., cracks, settling), but still safe.\n4: Good condition. Minor wear and tear but no structural concerns. Meets most modern codes.\n5: Excellent structural integrity. No visible defects. Built to high standards with durable materials.",
     "month_sold": "Month Sold (1 = Jan)",
     "LATITUDE": "Latitude",
     "LONGITUDE": "Longitude"
@@ -106,6 +106,16 @@ def get_user_input():
                 value=float(df[feature].median()),
                 step=0.01,
                 format="%.6f"
+            )
+
+        elif feature == "structure_quality":
+            input_data[feature] = st.sidebar.number_input(
+                label,
+                min_value=1,
+                max_value=5,
+                value=int(df[feature].median()),
+                step=1,
+                format="%d"
             )
 
         elif df[feature].dtype in [np.float64, np.int64]:
