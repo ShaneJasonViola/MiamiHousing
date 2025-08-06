@@ -81,19 +81,40 @@ feature_labels = {
 
 # USER INPUT SECTION
 
+# USER INPUT SECTION
+
 st.sidebar.header("Input House Features")
 
 def get_user_input():
     input_data = {}
     for feature in feature_columns:
         label = feature_labels.get(feature, feature)
+
         if df[feature].dtype in [np.float64, np.int64]:
-            input_data[feature] = st.sidebar.number_input(label, value=float(df[feature].median()))
+            # Allow decimal precision only for latitude and longitude
+            if feature in ["LATITUDE", "LONGITUDE"]:
+                input_data[feature] = st.sidebar.number_input(
+                    label,
+                    value=float(df[feature].median()),
+                    step=0.01,
+                    format="%.6f"
+                )
+            else:
+                input_data[feature] = st.sidebar.number_input(
+                    label,
+                    value=int(df[feature].median()),
+                    step=1,
+                    format="%d"
+                )
         else:
-            input_data[feature] = st.sidebar.selectbox(label, options=df[feature].unique())
+            input_data[feature] = st.sidebar.selectbox(
+                label,
+                options=sorted(df[feature].unique())
+            )
     return pd.DataFrame([input_data])
 
 user_input_df = get_user_input()
+
 
 if user_input_df.isnull().values.any():
     st.warning("Some input fields are missing. Please complete all inputs.")
