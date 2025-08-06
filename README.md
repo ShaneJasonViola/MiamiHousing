@@ -34,14 +34,14 @@ How to Run
 Project Structure
 
 miami-housing-estimator/
-│
-├── app.py                     # Main Streamlit application
-├── miami_housing_sample.csv   # Sample housing dataset (not included in repo)
-├── linear_model.pkl           # Trained linear regression model
-├── random_forest_model.pkl    # Trained random forest model
-├── scaler.pkl                 # StandardScaler used during model training
-├── requirements.txt           # Python dependencies
-└── README.md                  # Project documentation
+
+housingstreamlit_py.py     # Main Streamlit application
+miami_housing_sample.csv   # Sample housing dataset (not included in repo)
+linear_model.pkl           # Trained linear regression model
+random_forest_model.pkl    # Trained random forest model
+scaler.pkl                 # StandardScaler used during model training
+requirements.txt           # Python dependencies
+README.md                  # Project documentation
 
 Libraries Used
 
