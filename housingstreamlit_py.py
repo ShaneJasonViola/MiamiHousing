@@ -1,11 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-
-
-
-# app.py
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -16,7 +11,6 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 
 # CONFIGURATION & PAGE SETUP
-
 st.set_page_config(
     page_title="Miami Housing Price Estimator",
     layout="wide",
@@ -30,7 +24,6 @@ It also provides model evaluation metrics and key insights from the dataset.
 """)
 
 # LOAD MODELS AND SCALER
-
 @st.cache_resource
 def load_models():
     try:
@@ -44,9 +37,7 @@ def load_models():
 
 lr_model, rf_model, scaler = load_models()
 
-
 # LOAD DATASET
-
 @st.cache_data
 def load_data():
     try:
@@ -60,7 +51,6 @@ df = load_data()
 feature_columns = df.drop("SALE_PRC", axis=1).columns.tolist()
 
 # UI Labels
-
 feature_labels = {
     "LND_SQFOOT": "Land Area (sq ft)",
     "TOT_LVG_AREA": "Living Area (sq ft)",
@@ -80,74 +70,93 @@ feature_labels = {
 }
 
 # USER INPUT SECTION
-
-# USER INPUT SECTION
-
 st.sidebar.header("Input House Features")
 
 def get_user_input():
     input_data = {}
+
+    month_options = {
+        "January": 1, "February": 2, "March": 3, "April": 4,
+        "May": 5, "June": 6, "July": 7, "August": 8,
+        "September": 9, "October": 10, "November": 11, "December": 12
+    }
+
     for feature in feature_columns:
         label = feature_labels.get(feature, feature)
 
-        if df[feature].dtype in [np.float64, np.int64]:
-            # Allow decimal precision only for latitude and longitude
-            if feature in ["LATITUDE", "LONGITUDE"]:
-                input_data[feature] = st.sidebar.number_input(
-                    label,
-                    value=float(df[feature].median()),
-                    step=0.01,
-                    format="%.6f"
-                )
-            else:
-                input_data[feature] = st.sidebar.number_input(
-                    label,
-                    value=int(df[feature].median()),
-                    step=1,
-                    format="%d"
-                )
+        if feature == "month_sold":
+            month_name = st.sidebar.selectbox("Month Sold", options=list(month_options.keys()))
+            input_data[feature] = month_options[month_name]
+
+        elif feature == "LATITUDE":
+            input_data[feature] = st.sidebar.number_input(
+                label,
+                min_value=25.50,
+                max_value=25.90,
+                value=float(df[feature].median()),
+                step=0.01,
+                format="%.6f"
+            )
+
+        elif feature == "LONGITUDE":
+            input_data[feature] = st.sidebar.number_input(
+                label,
+                min_value=-80.35,
+                max_value=-80.10,
+                value=float(df[feature].median()),
+                step=0.01,
+                format="%.6f"
+            )
+
+        elif df[feature].dtype in [np.float64, np.int64]:
+            input_data[feature] = st.sidebar.number_input(
+                label,
+                value=int(df[feature].median()),
+                step=1,
+                format="%d"
+            )
+
         else:
             input_data[feature] = st.sidebar.selectbox(
                 label,
                 options=sorted(df[feature].unique())
             )
+
     return pd.DataFrame([input_data])
 
 user_input_df = get_user_input()
 
+if st.sidebar.button("Predict"):
+    if user_input_df.isnull().values.any():
+        st.warning("Some input fields are missing. Please complete all inputs.")
+        st.stop()
 
-if user_input_df.isnull().values.any():
-    st.warning("Some input fields are missing. Please complete all inputs.")
-    st.stop()
+    try:
+        user_input_df = user_input_df[scaler.feature_names_in_]
+    except AttributeError:
+        st.error("Scaler does not contain feature names. It may have been trained on a NumPy array. Please retrain it on a DataFrame.")
+        st.stop()
+    except KeyError as e:
+        st.error(f"Input features do not match the scaler's expected input. Missing columns: {e}")
+        st.stop()
 
-try:
-    user_input_df = user_input_df[scaler.feature_names_in_]
-except AttributeError:
-    st.error("Scaler does not contain feature names. It may have been trained on a NumPy array. Please retrain it on a DataFrame.")
-    st.stop()
-except KeyError as e:
-    st.error(f"Input features do not match the scaler's expected input. Missing columns: {e}")
-    st.stop()
+    # PREDICTIONS
+    user_scaled = scaler.transform(user_input_df)
+    lr_pred = lr_model.predict(user_scaled)[0]
+    rf_pred = rf_model.predict(user_scaled)[0]
 
-# PREDICTIONS
+    st.subheader("Estimated Property Price")
+    st.write(f"Linear Regression Prediction: ${lr_pred:,.2f}")
+    st.write(f"Random Forest Prediction: ${rf_pred:,.2f}")
 
-user_scaled = scaler.transform(user_input_df)
-lr_pred = lr_model.predict(user_scaled)[0]
-rf_pred = rf_model.predict(user_scaled)[0]
-
-st.subheader("Estimated Property Price")
-st.write(f"Linear Regression Prediction: ${lr_pred:,.2f}")
-st.write(f"Random Forest Prediction: ${rf_pred:,.2f}")
-
-rf_test_preds = rf_model.predict(scaler.transform(df[feature_columns]))
-rf_pred_std = np.std(rf_test_preds)
-st.info(f"Approximate Confidence Range for Random Forest Prediction: ±${rf_pred_std:.2f}")
-
+    rf_test_preds = rf_model.predict(scaler.transform(df[feature_columns]))
+    rf_pred_std = np.std(rf_test_preds)
+    st.info(f"Approximate Confidence Range for Random Forest Prediction: ±${rf_pred_std:.2f}")
+else:
+    st.info("Enter values in the sidebar and click **Predict** to see results.")
 
 # MODEL PERFORMANCE
-
 st.subheader("Model Performance Comparison")
-
 X = df[feature_columns]
 y = df["SALE_PRC"]
 X_scaled = scaler.transform(X)
@@ -184,9 +193,7 @@ st.markdown("### Model Comparison Summary")
 better_model = "Random Forest" if rf_metrics["R2"] > lr_metrics["R2"] else "Linear Regression"
 st.success(f"Based on R², the better performing model is: **{better_model}**.")
 
-
 # DATA EXPLORATION
-
 st.subheader("Data Exploration and Visual Insights")
 
 # --- Distribution Plot  ---
@@ -203,31 +210,23 @@ st.pyplot(fig1)
 
 # --- Correlation Heatmap  ---
 st.markdown("Correlation Heatmap")
-
-# Apply readable labels
 renamed_df = df.rename(columns=feature_labels)
 corr_matrix = renamed_df.corr(numeric_only=True)
-
-fig2, ax2 = plt.subplots(figsize=(6, 5))  # Smaller figure size
-
+fig2, ax2 = plt.subplots(figsize=(6, 5))
 sns.heatmap(
     corr_matrix,
     annot=True,
     fmt=".2f",
     cmap="coolwarm",
     ax=ax2,
-    annot_kws={"size": 6},      # Smaller font size for numbers
-    cbar_kws={"shrink": 0.6}    # Shrink color bar
+    annot_kws={"size": 6},
+    cbar_kws={"shrink": 0.6}
 )
-
-# Shrink label fonts
 ax2.tick_params(axis='x', labelrotation=90, labelsize=6)
 ax2.tick_params(axis='y', labelsize=6)
-
 st.pyplot(fig2)
 
-
-
+# --- Scatter Plots ---
 st.markdown("Scatter Plots of Key Predictive Features")
 target_corr = df.corr(numeric_only=True)["SALE_PRC"].drop("SALE_PRC").abs().sort_values(ascending=False)
 top_features = target_corr.head(4).index
@@ -245,9 +244,7 @@ for i, feature in enumerate(top_features):
 plt.tight_layout()
 st.pyplot(fig3)
 
-# -------------------------------------
 # FOOTER
-# -------------------------------------
 st.markdown("---")
 st.caption("Developed for academic purposes only.")
 
