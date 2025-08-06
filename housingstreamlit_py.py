@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -63,7 +60,7 @@ feature_labels = {
     "HWY_DIST": "Distance to Highway (ft)",
     "age": "Age of Structure",
     "avno60plus": "Airplane Noise > 60 dB (1=Yes)",
-    "structure_quality": "Structure Quality (1–5)\n\n1: Very poor. Major structural deficiencies. Possibly unsafe or uninhabitable.\n2: Poor condition. Noticeable structural problems that may affect safety or require repair.\n3: Fair condition. Some aging or minor structural issues (e.g., cracks, settling), but still safe.\n4: Good condition. Minor wear and tear but no structural concerns. Meets most modern codes.\n5: Excellent structural integrity. No visible defects. Built to high standards with durable materials.",
+    "structure_quality": "Structure Quality (1–5)",
     "month_sold": "Month Sold (1 = Jan)",
     "LATITUDE": "Latitude",
     "LONGITUDE": "Longitude"
