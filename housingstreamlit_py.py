@@ -1,26 +1,135 @@
-import streamlit as st
-import pandas as pd
+# app.py — Miami Housing Price Estimator
+
+import base64
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
+import seaborn as sns
 import joblib
 import matplotlib.pyplot as plt
-import seaborn as sns
+import streamlit as st
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 
-# CONFIGURATION & PAGE SETUP
+# -----------------------------------------------------------------------------
+# PAGE CONFIG
+# -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Miami Housing Price Estimator",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+# -----------------------------------------------------------------------------
+# MIAMI THEME (CSS)
+# -----------------------------------------------------------------------------
+def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
+    """Add a Miami-styled theme using custom CSS (gradient headers, neon accents,
+    frosted sidebar, styled buttons/inputs, and optional background image)."""
+    b64 = ""
+    p = Path(bg_path)
+    if p.exists():
+        try:
+            b64 = base64.b64encode(p.read_bytes()).decode()
+        except Exception:
+            b64 = ""
+
+    gradient = "linear-gradient(135deg, #2bd2ff 0%, #ff6ec7 50%, #7a2ee6 100%)"
+
+    css = f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+    html, body, [class*="css"] {{
+        font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        color: #0e1726;
+    }}
+
+    .stApp {{
+        background: {"url('data:image/jpeg;base64," + b64 + "') no-repeat center/cover fixed" if b64 else "linear-gradient(180deg, #e9fbff 0%, #fff0ff 100%)"};
+    }}
+    .stApp:before {{
+        content:"";
+        position: fixed; inset: 0;
+        background: rgba(255,255,255,0.72);
+        z-index: 0;
+    }}
+    .block-container {{ position: relative; z-index: 1; }}
+
+    section[data-testid="stSidebar"] > div {{
+        background: rgba(255,255,255,0.88);
+        backdrop-filter: blur(8px);
+        border-right: 1px solid rgba(0,0,0,0.06);
+    }}
+
+    h1, h2, h3 {{ font-weight: 700; letter-spacing: .2px; margin-top: .2rem; }}
+    h1 {{
+        background: {gradient};
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }}
+
+    .stButton>button {{
+        background: {gradient};
+        color: #fff; border: 0; border-radius: 12px;
+        padding: .6rem 1.1rem; font-weight: 600;
+        box-shadow: 0 6px 18px rgba(122,46,230,.25);
+        transition: transform .06s ease, box-shadow .12s ease;
+    }}
+    .stButton>button:hover {{
+        transform: translateY(-1px);
+        box-shadow: 0 10px 26px rgba(122,46,230,.35);
+    }}
+
+    .stSelectbox, .stNumberInput, .stTextInput, .stDateInput, .stMultiSelect {{
+        background: rgba(255,255,255,0.9);
+        border-radius: 10px !important;
+    }}
+    div[data-baseweb="select"] > div, input[type="number"], input[type="text"] {{
+        border-radius: 10px !important;
+    }}
+
+    div[data-testid="stMetric"] > div, div[role="alert"] {{
+        background: rgba(255,255,255,0.82);
+        border-radius: 14px;
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 10px 30px rgba(45,184,255,0.15);
+        padding: 14px;
+    }}
+
+    .stDataFrame thead tr th {{
+        background: #0e1726 !important;
+        color: #fff !important;
+        border: 0 !important;
+    }}
+
+    div[data-baseweb="slider"] > div > div > div {{
+        background-image: {gradient} !important;
+    }}
+
+    #MainMenu, footer {{ visibility: hidden; }}
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+
+# Apply theme and set plotting palette
+apply_miami_theme("miami_bg.jpg")
+sns.set_style("whitegrid")
+sns.set_palette(["#2bd2ff", "#ff6ec7", "#7a2ee6", "#00d8b4", "#ffd166"])
+
+# -----------------------------------------------------------------------------
+# APP TITLE / INTRO
+# -----------------------------------------------------------------------------
 st.title("Miami Housing Price Estimator")
 st.markdown("""
 This application predicts housing prices based on user input using Linear Regression and Random Forest models.
 It also provides model evaluation metrics and key insights from the dataset.
 """)
 
+# -----------------------------------------------------------------------------
 # LOAD MODELS AND SCALER
+# -----------------------------------------------------------------------------
 @st.cache_resource
 def load_models():
     try:
@@ -34,7 +143,9 @@ def load_models():
 
 lr_model, rf_model, scaler = load_models()
 
+# -----------------------------------------------------------------------------
 # LOAD DATASET
+# -----------------------------------------------------------------------------
 @st.cache_data
 def load_data():
     try:
@@ -47,7 +158,9 @@ def load_data():
 df = load_data()
 feature_columns = df.drop("SALE_PRC", axis=1).columns.tolist()
 
-# UI Labels
+# -----------------------------------------------------------------------------
+# UI LABELS
+# -----------------------------------------------------------------------------
 feature_labels = {
     "LND_SQFOOT": "Land Area (sq ft)",
     "TOT_LVG_AREA": "Living Area (sq ft)",
@@ -66,7 +179,9 @@ feature_labels = {
     "LONGITUDE": "Longitude"
 }
 
-# USER INPUT SECTION
+# -----------------------------------------------------------------------------
+# USER INPUTS (SIDEBAR)
+# -----------------------------------------------------------------------------
 st.sidebar.header("Input House Features")
 
 def get_user_input():
@@ -87,52 +202,39 @@ def get_user_input():
 
         elif feature == "LATITUDE":
             input_data[feature] = st.sidebar.number_input(
-                label,
-                min_value=25.50,
-                max_value=25.90,
-                value=float(df[feature].median()),
-                step=0.01,
-                format="%.6f"
+                label, min_value=25.50, max_value=25.90,
+                value=float(df[feature].median()), step=0.01, format="%.6f"
             )
 
         elif feature == "LONGITUDE":
             input_data[feature] = st.sidebar.number_input(
-                label,
-                min_value=-80.35,
-                max_value=-80.10,
-                value=float(df[feature].median()),
-                step=0.01,
-                format="%.6f"
+                label, min_value=-80.35, max_value=-80.10,
+                value=float(df[feature].median()), step=0.01, format="%.6f"
             )
 
         elif feature == "structure_quality":
             input_data[feature] = st.sidebar.number_input(
-                label,
-                min_value=1,
-                max_value=5,
-                value=int(df[feature].median()),
-                step=1,
-                format="%d"
+                label, min_value=1, max_value=5,
+                value=int(df[feature].median()), step=1, format="%d"
             )
 
         elif df[feature].dtype in [np.float64, np.int64]:
             input_data[feature] = st.sidebar.number_input(
-                label,
-                value=int(df[feature].median()),
-                step=1,
-                format="%d"
+                label, value=int(df[feature].median()), step=1, format="%d"
             )
 
         else:
             input_data[feature] = st.sidebar.selectbox(
-                label,
-                options=sorted(df[feature].unique())
+                label, options=sorted(df[feature].unique())
             )
 
     return pd.DataFrame([input_data])
 
 user_input_df = get_user_input()
 
+# -----------------------------------------------------------------------------
+# PREDICTION
+# -----------------------------------------------------------------------------
 if st.sidebar.button("Predict"):
     if user_input_df.isnull().values.any():
         st.warning("Some input fields are missing. Please complete all inputs.")
@@ -147,7 +249,6 @@ if st.sidebar.button("Predict"):
         st.error(f"Input features do not match the scaler's expected input. Missing columns: {e}")
         st.stop()
 
-    # PREDICTIONS
     user_scaled = scaler.transform(user_input_df)
     lr_pred = lr_model.predict(user_scaled)[0]
     rf_pred = rf_model.predict(user_scaled)[0]
@@ -160,10 +261,13 @@ if st.sidebar.button("Predict"):
     rf_pred_std = np.std(rf_test_preds)
     st.info(f"Approximate Confidence Range for Random Forest Prediction: ±${rf_pred_std:.2f}")
 else:
-    st.info("Enter values in the sidebar and click **Predict** to see results.")
+    st.info("Enter values in the sidebar and click Predict to see results.")
 
+# -----------------------------------------------------------------------------
 # MODEL PERFORMANCE
+# -----------------------------------------------------------------------------
 st.subheader("Model Performance Comparison")
+
 X = df[feature_columns]
 y = df["SALE_PRC"]
 X_scaled = scaler.transform(X)
@@ -183,7 +287,6 @@ lr_metrics = compute_metrics(y_test, lr_test_pred)
 rf_metrics = compute_metrics(y_test, rf_test_pred)
 
 col1, col2 = st.columns(2)
-
 with col1:
     st.markdown("**Linear Regression Metrics**")
     st.write(f"MAE : {lr_metrics['MAE']:.2f}")
@@ -200,13 +303,15 @@ st.markdown("### Model Comparison Summary")
 better_model = "Random Forest" if rf_metrics["R2"] > lr_metrics["R2"] else "Linear Regression"
 st.success(f"Based on R², the better performing model is: **{better_model}**.")
 
-# DATA EXPLORATION
+# -----------------------------------------------------------------------------
+# DATA EXPLORATION & VISUALS
+# -----------------------------------------------------------------------------
 st.subheader("Data Exploration and Visual Insights")
 
-# --- Distribution Plot  ---
+# Distribution of Sale Prices
 st.markdown("#### Distribution of Sale Prices")
 fig1, ax1 = plt.subplots(figsize=(12, 6))
-sns.histplot(df["SALE_PRC"], bins=40, ax=ax1, kde=True, color="skyblue")
+sns.histplot(df["SALE_PRC"], bins=40, ax=ax1, kde=True, color="#2bd2ff")
 ax1.set_title("Distribution of Sale Prices", fontsize=16)
 ax1.set_xlabel("Sale Price ($)", fontsize=13)
 ax1.set_ylabel("Home Sales", fontsize=13)
@@ -215,44 +320,38 @@ ax1.get_xaxis().set_major_formatter(plt.FuncFormatter(lambda x, loc: "${:,}".for
 plt.tight_layout()
 st.pyplot(fig1)
 
-# --- Correlation Heatmap  ---
+# Correlation Heatmap
 st.markdown("Correlation Heatmap")
 renamed_df = df.rename(columns=feature_labels)
 corr_matrix = renamed_df.corr(numeric_only=True)
 fig2, ax2 = plt.subplots(figsize=(6, 5))
 sns.heatmap(
-    corr_matrix,
-    annot=True,
-    fmt=".2f",
-    cmap="coolwarm",
-    ax=ax2,
-    annot_kws={"size": 6},
-    cbar_kws={"shrink": 0.6}
+    corr_matrix, annot=True, fmt=".2f", cmap="coolwarm", ax=ax2,
+    annot_kws={"size": 6}, cbar_kws={"shrink": 0.6}
 )
 ax2.tick_params(axis='x', labelrotation=90, labelsize=6)
 ax2.tick_params(axis='y', labelsize=6)
 st.pyplot(fig2)
 
-# --- Scatter Plots ---
+# Scatter plots of top features
 st.markdown("Scatter Plots of Key Predictive Features")
 target_corr = df.corr(numeric_only=True)["SALE_PRC"].drop("SALE_PRC").abs().sort_values(ascending=False)
 top_features = target_corr.head(4).index
 
 fig3, axs = plt.subplots(2, 2, figsize=(15, 10))
 axs = axs.flatten()
-
 for i, feature in enumerate(top_features):
     label = feature_labels.get(feature, feature)
     sns.scatterplot(data=df, x=feature, y="SALE_PRC", ax=axs[i])
     axs[i].set_title(f"{label} vs Sale Price")
     axs[i].set_xlabel(label)
     axs[i].set_ylabel("Sale Price ($)")
-
 plt.tight_layout()
 st.pyplot(fig3)
 
-# FOOTER
+# Footer
 st.markdown("---")
 st.caption("Developed for academic purposes only.")
+
 
 
