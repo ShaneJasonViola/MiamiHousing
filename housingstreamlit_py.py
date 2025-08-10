@@ -25,8 +25,9 @@ st.set_page_config(
 # MIAMI THEME (CSS)
 # -----------------------------------------------------------------------------
 def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
-    """Add a Miami-styled theme using custom CSS (gradient headers, neon accents,
-    frosted sidebar, styled buttons/inputs, and optional background image)."""
+    import base64
+    from pathlib import Path
+
     b64 = ""
     p = Path(bg_path)
     if p.exists():
@@ -36,7 +37,7 @@ def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
             b64 = ""
 
     gradient = "linear-gradient(135deg, #2bd2ff 0%, #ff6ec7 50%, #7a2ee6 100%)"
-    orange = "#ff7a00"  # bright Miami orange for high contrast
+    orange = "#ff7a00"  # bright Miami orange for sidebar inputs
 
     css = f"""
     <style>
@@ -91,14 +92,17 @@ def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
         border-radius: 10px !important;
     }}
 
-    /* Cards / metrics / alerts */
-    div[data-testid="stMetric"] > div, div[role="alert"] {{
-        background: rgba(255,255,255,0.82);
-        border-radius: 14px;
-        border: 1px solid rgba(0,0,0,0.05);
-        box-shadow: 0 10px 30px rgba(45,184,255,0.15);
-        padding: 14px;
+    /* KPI/alert cards */
+    div[data-testid="stMetric"] > div, .stAlert, div[role="alert"] {{
+        background: rgba(255,255,255,0.9) !important;
+        border-radius: 14px !important;
+        border: 1px solid rgba(0,0,0,0.06) !important;
+        box-shadow: 0 10px 30px rgba(45,184,255,0.15) !important;
+        padding: 14px !important;
+        color: #0e1726 !important;               /* <-- make alert text dark */
     }}
+    /* ensure *all* text inside alerts is dark */
+    .stAlert *, div[role="alert"] * {{ color: #0e1726 !important; }}
 
     /* Dataframe header */
     .stDataFrame thead tr th {{
@@ -112,19 +116,17 @@ def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
         background-image: {gradient} !important;
     }}
 
-    /* ===== Miami orange text in the SIDEBAR inputs (high contrast) ===== */
+    /* Miami orange text in the SIDEBAR inputs */
     section[data-testid="stSidebar"] input[type="number"],
     section[data-testid="stSidebar"] input[type="text"] {{
         color: {orange} !important;
         font-weight: 700 !important;
-        text-shadow: 0 0 0 {orange}; /* improves legibility on some themes */
+        text-shadow: 0 0 0 {orange};
     }}
-    /* React-select visible value */
     section[data-testid="stSidebar"] div[data-baseweb="select"] div[role="combobox"] * {{
         color: {orange} !important;
         font-weight: 700 !important;
     }}
-    /* Sidebar labels a bit darker for readability */
     section[data-testid="stSidebar"] label, 
     section[data-testid="stSidebar"] .stMarkdown p {{
         color: #263238 !important;
@@ -135,6 +137,7 @@ def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
+
 
 # Apply theme and set plotting palette
 apply_miami_theme("miami_bg.jpg")
