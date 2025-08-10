@@ -36,6 +36,7 @@ def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
             b64 = ""
 
     gradient = "linear-gradient(135deg, #2bd2ff 0%, #ff6ec7 50%, #7a2ee6 100%)"
+    orange = "#ff7a00"  # bright Miami orange for high contrast
 
     css = f"""
     <style>
@@ -90,6 +91,7 @@ def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
         border-radius: 10px !important;
     }}
 
+    /* Cards / metrics / alerts */
     div[data-testid="stMetric"] > div, div[role="alert"] {{
         background: rgba(255,255,255,0.82);
         border-radius: 14px;
@@ -98,14 +100,35 @@ def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
         padding: 14px;
     }}
 
+    /* Dataframe header */
     .stDataFrame thead tr th {{
         background: #0e1726 !important;
         color: #fff !important;
         border: 0 !important;
     }}
 
+    /* Slider track */
     div[data-baseweb="slider"] > div > div > div {{
         background-image: {gradient} !important;
+    }}
+
+    /* ===== Miami orange text in the SIDEBAR inputs (high contrast) ===== */
+    section[data-testid="stSidebar"] input[type="number"],
+    section[data-testid="stSidebar"] input[type="text"] {{
+        color: {orange} !important;
+        font-weight: 700 !important;
+        text-shadow: 0 0 0 {orange}; /* improves legibility on some themes */
+    }}
+    /* React-select visible value */
+    section[data-testid="stSidebar"] div[data-baseweb="select"] div[role="combobox"] * {{
+        color: {orange} !important;
+        font-weight: 700 !important;
+    }}
+    /* Sidebar labels a bit darker for readability */
+    section[data-testid="stSidebar"] label, 
+    section[data-testid="stSidebar"] .stMarkdown p {{
+        color: #263238 !important;
+        font-weight: 600;
     }}
 
     #MainMenu, footer {{ visibility: hidden; }}
@@ -352,6 +375,7 @@ st.pyplot(fig3)
 # Footer
 st.markdown("---")
 st.caption("Developed for academic purposes only.")
+
 
 
 
