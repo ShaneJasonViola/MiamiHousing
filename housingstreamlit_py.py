@@ -25,9 +25,14 @@ st.set_page_config(
 # MIAMI THEME (CSS)
 # -----------------------------------------------------------------------------
 def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
-    import base64
-    from pathlib import Path
-
+    """
+    Miami-styled theme using custom CSS:
+    - optional background image
+    - gradient H1, neon accents
+    - frosted sidebar
+    - styled buttons/inputs
+    - dark readable text across the main app
+    """
     b64 = ""
     p = Path(bg_path)
     if p.exists():
@@ -37,7 +42,6 @@ def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
             b64 = ""
 
     gradient = "linear-gradient(135deg, #2bd2ff 0%, #ff6ec7 50%, #7a2ee6 100%)"
-    orange = "#ff7a00"  # bright Miami orange for sidebar inputs
 
     css = f"""
     <style>
@@ -59,19 +63,24 @@ def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
     }}
     .block-container {{ position: relative; z-index: 1; }}
 
+    /* Sidebar (frosted) */
     section[data-testid="stSidebar"] > div {{
         background: rgba(255,255,255,0.88);
         backdrop-filter: blur(8px);
         border-right: 1px solid rgba(0,0,0,0.06);
     }}
 
-    h1, h2, h3 {{ font-weight: 700; letter-spacing: .2px; margin-top: .2rem; }}
+    /* Headers */
     h1 {{
         background: {gradient};
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        font-weight: 700;
+        letter-spacing: .2px;
+        margin-top: .2rem;
     }}
 
+    /* Buttons */
     .stButton>button {{
         background: {gradient};
         color: #fff; border: 0; border-radius: 12px;
@@ -84,53 +93,57 @@ def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
         box-shadow: 0 10px 26px rgba(122,46,230,.35);
     }}
 
+    /* Inputs */
     .stSelectbox, .stNumberInput, .stTextInput, .stDateInput, .stMultiSelect {{
-        background: rgba(255,255,255,0.9);
+        background: rgba(255,255,255,0.92);
         border-radius: 10px !important;
     }}
     div[data-baseweb="select"] > div, input[type="number"], input[type="text"] {{
         border-radius: 10px !important;
     }}
 
-    /* KPI/alert cards */
-    div[data-testid="stMetric"] > div, .stAlert, div[role="alert"] {{
-        background: rgba(255,255,255,0.9) !important;
-        border-radius: 14px !important;
-        border: 1px solid rgba(0,0,0,0.06) !important;
-        box-shadow: 0 10px 30px rgba(45,184,255,0.15) !important;
-        padding: 14px !important;
-        color: #0e1726 !important;               /* <-- make alert text dark */
+    /* Sidebar label color (bright Miami orange) */
+    section[data-testid="stSidebar"] label {{
+        color: #ff8c00 !important;
+        font-weight: 600 !important;
     }}
-    /* ensure *all* text inside alerts is dark */
-    .stAlert *, div[role="alert"] * {{ color: #0e1726 !important; }}
 
-    /* Dataframe header */
+    /* Cards / alerts */
+    div[data-testid="stMetric"] > div, div[role="alert"] {{
+        background: rgba(255,255,255,0.86);
+        border-radius: 14px;
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 10px 30px rgba(45,184,255,0.15);
+        padding: 14px;
+    }}
+
+    /* DataFrame header */
     .stDataFrame thead tr th {{
         background: #0e1726 !important;
         color: #fff !important;
         border: 0 !important;
     }}
 
-    /* Slider track */
+    /* Slider accent */
     div[data-baseweb="slider"] > div > div > div {{
         background-image: {gradient} !important;
     }}
 
-    /* Miami orange text in the SIDEBAR inputs */
-    section[data-testid="stSidebar"] input[type="number"],
-    section[data-testid="stSidebar"] input[type="text"] {{
-        color: {orange} !important;
-        font-weight: 700 !important;
-        text-shadow: 0 0 0 {orange};
+    /* Force DARK text across main content (subheaders, paragraphs, etc.) */
+    .block-container h2,
+    .block-container h3,
+    .block-container p,
+    .block-container span,
+    .block-container strong,
+    .block-container label,
+    div[data-testid="stMarkdownContainer"] * {{
+      color: #0e1726 !important;
     }}
-    section[data-testid="stSidebar"] div[data-baseweb="select"] div[role="combobox"] * {{
-        color: {orange} !important;
-        font-weight: 700 !important;
-    }}
-    section[data-testid="stSidebar"] label, 
-    section[data-testid="stSidebar"] .stMarkdown p {{
-        color: #263238 !important;
-        font-weight: 600;
+
+    /* Also ensure text inside metrics and alerts is dark */
+    div[data-testid="stMetric"] *,
+    div[role="alert"] * {{
+      color: #0e1726 !important;
     }}
 
     #MainMenu, footer {{ visibility: hidden; }}
@@ -138,8 +151,7 @@ def apply_miami_theme(bg_path: str = "miami_bg.jpg"):
     """
     st.markdown(css, unsafe_allow_html=True)
 
-
-# Apply theme and set plotting palette
+# Apply theme and plotting palette
 apply_miami_theme("miami_bg.jpg")
 sns.set_style("whitegrid")
 sns.set_palette(["#2bd2ff", "#ff6ec7", "#7a2ee6", "#00d8b4", "#ffd166"])
@@ -327,7 +339,7 @@ with col2:
 
 st.markdown("### Model Comparison Summary")
 better_model = "Random Forest" if rf_metrics["R2"] > lr_metrics["R2"] else "Linear Regression"
-st.success(f"Based on R², the better performing model is: **{better_model}**.")
+st.success(f"Based on R², the better performing model is: {better_model}.")
 
 # -----------------------------------------------------------------------------
 # DATA EXPLORATION & VISUALS
@@ -378,6 +390,7 @@ st.pyplot(fig3)
 # Footer
 st.markdown("---")
 st.caption("Developed for academic purposes only.")
+
 
 
 
