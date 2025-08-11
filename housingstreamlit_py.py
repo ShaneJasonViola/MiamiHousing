@@ -387,6 +387,71 @@ for i, feature in enumerate(top_features):
 plt.tight_layout()
 st.pyplot(fig3)
 
+# ===================== Miami Home Sales Map (Bottom Section) =====================
+import plotly.express as px
+
+st.subheader("Miami Home Sales Map")
+
+# Check the required columns exist
+_required_cols = {"LATITUDE", "LONGITUDE", "SALE_PRC"}
+_missing = _required_cols - set(df.columns)
+if _missing:
+    st.warning(f"Cannot draw map. Missing columns: {', '.join(sorted(_missing))}")
+else:
+    # Drop rows without coordinates
+    df_map_base = df.dropna(subset=["LATITUDE", "LONGITUDE"]).copy()
+
+    # Optional: clip to sensible Miami bounds if your dataset has stray points
+    # (comment out if you don't want this)
+    lat_ok = df_map_base["LATITUDE"].between(25.40, 26.10)
+    lon_ok = df_map_base["LONGITUDE"].between(-80.60, -79.90)
+    df_map_base = df_map_base[lat_ok & lon_ok]
+
+    # Controls
+    c1, c2 = st.columns([2, 1], vertical_alignment="bottom")
+    with c1:
+        # Price slider
+        min_price = float(df_map_base["SALE_PRC"].min())
+        max_price = float(df_map_base["SALE_PRC"].max())
+        price_range = st.slider(
+            "Filter by sale price ($)",
+            min_value=int(min_price),
+            max_value=int(max_price),
+            value=(int(min_price), int(max_price)),
+            step=max(1, int((max_price - min_price) / 100)),
+        )
+    with c2:
+        max_points = st.number_input("Max points to plot", value=5000, min_value=500, step=500)
+
+    # Apply filters
+    lo, hi = price_range
+    df_map = df_map_base[(df_map_base["SALE_PRC"] >= lo) & (df_map_base["SALE_PRC"] <= hi)].copy()
+    if len(df_map) > max_points:
+        df_map = df_map.sample(max_points, random_state=42)
+
+    # Hover info (show only columns that exist)
+    hover_cols = [c for c in ["SALE_PRC", "TOT_LVG_AREA", "LND_SQFOOT", "age", "structure_quality"] if c in df_map.columns]
+
+    # Build map
+    fig_map = px.scatter_mapbox(
+        df_map,
+        lat="LATITUDE",
+        lon="LONGITUDE",
+        color="SALE_PRC",
+        color_continuous_scale="Turbo",  # bright and readable
+        hover_data=hover_cols,
+        zoom=9,
+        height=620,
+    )
+    fig_map.update_layout(
+        mapbox_style="open-street-map",   # no token needed
+        margin=dict(l=10, r=10, t=10, b=10),
+        coloraxis_colorbar=dict(title="Sale Price"),
+    )
+
+    st.plotly_chart(fig_map, use_container_width=True)
+# =================== End Miami Home Sales Map (Bottom Section) ===================
+
 # Footer
 st.markdown("---")
 st.caption("Developed for academic purposes only.")
