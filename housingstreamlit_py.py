@@ -387,70 +387,61 @@ for i, feature in enumerate(top_features):
 plt.tight_layout()
 st.pyplot(fig3)
 
-# ===================== Miami Home Sales Map (Bottom Section) =====================
-import plotly.express as px
+# --- FAST MAP (PyDeck) ---
+import pydeck as pdk
+import numpy as np
 
-st.subheader("Miami Home Sales Map")
+st.subheader("Miami Home Sales Map (fast)")
 
-# Check the required columns exist
-_required_cols = {"LATITUDE", "LONGITUDE", "SALE_PRC"}
-_missing = _required_cols - set(df.columns)
-if _missing:
-    st.warning(f"Cannot draw map. Missing columns: {', '.join(sorted(_missing))}")
+needed_cols = {"LATITUDE", "LONGITUDE", "SALE_PRC"}
+if not needed_cols.issubset(df.columns):
+    st.info("Missing columns for map.")
 else:
-    # Drop rows without coordinates
-    df_map_base = df.dropna(subset=["LATITUDE", "LONGITUDE"]).copy()
+    # Basic filters
+    pmin, pmax = int(df["SALE_PRC"].min()), int(df["SALE_PRC"].max())
+    lo, hi = st.slider("Price range ($)", pmin, pmax, (pmin, pmax), step=5000)
+    max_points = st.slider("Max points on map", 1000, 20000, 5000, 1000)
 
-    # Optional: clip to sensible Miami bounds if your dataset has stray points
-    # (comment out if you don't want this)
-    lat_ok = df_map_base["LATITUDE"].between(25.40, 26.10)
-    lon_ok = df_map_base["LONGITUDE"].between(-80.60, -79.90)
-    df_map_base = df_map_base[lat_ok & lon_ok]
+    @st.cache_data(show_spinner=False)
+    def prep_map_data(df_in, lo, hi, max_points):
+        d = df_in.dropna(subset=["LATITUDE","LONGITUDE","SALE_PRC"]).copy()
+        # tighten to Miami bounding box (optional)
+        d = d[
+            d["LATITUDE"].between(25.40, 26.10) &
+            d["LONGITUDE"].between(-80.60, -79.90)
+        ]
+        d = d[(d["SALE_PRC"] >= lo) & (d["SALE_PRC"] <= hi)]
+        # downsample if too big
+        if len(d) > max_points:
+            d = d.sample(max_points, random_state=42)
+        # build an orange → red color scale by price
+        rng = max(1, hi - lo)
+        t = ((d["SALE_PRC"] - lo) / rng).clip(0, 1).to_numpy()
+        # bright orange to deeper red
+        d["color_r"] = (220 + 35*t).astype(int)      # 220→255
+        d["color_g"] = (120 - 80*t).clip(0,120).astype(int)  # 120→40
+        d["color_b"] = 0
+        return d[["LONGITUDE","LATITUDE","SALE_PRC","color_r","color_g","color_b"]]
 
-    # Controls
-    c1, c2 = st.columns([2, 1], vertical_alignment="bottom")
-    with c1:
-        # Price slider
-        min_price = float(df_map_base["SALE_PRC"].min())
-        max_price = float(df_map_base["SALE_PRC"].max())
-        price_range = st.slider(
-            "Filter by sale price ($)",
-            min_value=int(min_price),
-            max_value=int(max_price),
-            value=(int(min_price), int(max_price)),
-            step=max(1, int((max_price - min_price) / 100)),
-        )
-    with c2:
-        max_points = st.number_input("Max points to plot", value=5000, min_value=500, step=500)
+    df_map = prep_map_data(df, lo, hi, max_points)
 
-    # Apply filters
-    lo, hi = price_range
-    df_map = df_map_base[(df_map_base["SALE_PRC"] >= lo) & (df_map_base["SALE_PRC"] <= hi)].copy()
-    if len(df_map) > max_points:
-        df_map = df_map.sample(max_points, random_state=42)
-
-    # Hover info (show only columns that exist)
-    hover_cols = [c for c in ["SALE_PRC", "TOT_LVG_AREA", "LND_SQFOOT", "age", "structure_quality"] if c in df_map.columns]
-
-    # Build map
-    fig_map = px.scatter_mapbox(
-        df_map,
-        lat="LATITUDE",
-        lon="LONGITUDE",
-        color="SALE_PRC",
-        color_continuous_scale="Turbo",  # bright and readable
-        hover_data=hover_cols,
-        zoom=9,
-        height=620,
+    layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=df_map,
+        get_position="[LONGITUDE, LATITUDE]",
+        get_radius=30,  # meters
+        get_fill_color="[color_r, color_g, color_b, 170]",
+        pickable=True,
     )
-    fig_map.update_layout(
-        mapbox_style="open-street-map",   # no token needed
-        margin=dict(l=10, r=10, t=10, b=10),
-        coloraxis_colorbar=dict(title="Sale Price"),
+    view = pdk.ViewState(latitude=25.77, longitude=-80.19, zoom=9)
+    deck = pdk.Deck(
+        layers=[layer],
+        initial_view_state=view,
+        tooltip={"text": "Price: ${SALE_PRC}"},
+        map_provider="carto",            # no Mapbox token needed
+        map_style="light",
     )
-
-    st.plotly_chart(fig_map, use_container_width=True)
-# =================== End Miami Home Sales Map (Bottom Section) ===================
+    st.pydeck_chart(deck, use_container_width=True)
 
 # Footer
 st.markdown("---")
