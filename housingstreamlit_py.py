@@ -387,61 +387,7 @@ for i, feature in enumerate(top_features):
 plt.tight_layout()
 st.pyplot(fig3)
 
-# --- FAST MAP (PyDeck) ---
-import pydeck as pdk
-import numpy as np
 
-st.subheader("Miami Home Sales Map (fast)")
-
-needed_cols = {"LATITUDE", "LONGITUDE", "SALE_PRC"}
-if not needed_cols.issubset(df.columns):
-    st.info("Missing columns for map.")
-else:
-    # Basic filters
-    pmin, pmax = int(df["SALE_PRC"].min()), int(df["SALE_PRC"].max())
-    lo, hi = st.slider("Price range ($)", pmin, pmax, (pmin, pmax), step=5000)
-    max_points = st.slider("Max points on map", 1000, 20000, 5000, 1000)
-
-    @st.cache_data(show_spinner=False)
-    def prep_map_data(df_in, lo, hi, max_points):
-        d = df_in.dropna(subset=["LATITUDE","LONGITUDE","SALE_PRC"]).copy()
-        # tighten to Miami bounding box (optional)
-        d = d[
-            d["LATITUDE"].between(25.40, 26.10) &
-            d["LONGITUDE"].between(-80.60, -79.90)
-        ]
-        d = d[(d["SALE_PRC"] >= lo) & (d["SALE_PRC"] <= hi)]
-        # downsample if too big
-        if len(d) > max_points:
-            d = d.sample(max_points, random_state=42)
-        # build an orange → red color scale by price
-        rng = max(1, hi - lo)
-        t = ((d["SALE_PRC"] - lo) / rng).clip(0, 1).to_numpy()
-        # bright orange to deeper red
-        d["color_r"] = (220 + 35*t).astype(int)      # 220→255
-        d["color_g"] = (120 - 80*t).clip(0,120).astype(int)  # 120→40
-        d["color_b"] = 0
-        return d[["LONGITUDE","LATITUDE","SALE_PRC","color_r","color_g","color_b"]]
-
-    df_map = prep_map_data(df, lo, hi, max_points)
-
-    layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=df_map,
-        get_position="[LONGITUDE, LATITUDE]",
-        get_radius=30,  # meters
-        get_fill_color="[color_r, color_g, color_b, 170]",
-        pickable=True,
-    )
-    view = pdk.ViewState(latitude=25.77, longitude=-80.19, zoom=9)
-    deck = pdk.Deck(
-        layers=[layer],
-        initial_view_state=view,
-        tooltip={"text": "Price: ${SALE_PRC}"},
-        map_provider="carto",            # no Mapbox token needed
-        map_style="light",
-    )
-    st.pydeck_chart(deck, use_container_width=True)
 
 # Footer
 st.markdown("---")
